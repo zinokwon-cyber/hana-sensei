@@ -2,6 +2,7 @@
 Allows running the full UI without real OpenAI / Azure / AWS credentials.
 """
 import uuid
+import math
 import base64
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,24 +23,86 @@ MOCK_USERS = [
 ]
 
 _STYLE_CFG = {
-    "기본":  {"color": "#6B4E9A", "bg": "#F5F0FF", "icon": "&#x1F4BC;"},
-    "귀여움": {"color": "#D63384", "bg": "#FFF0F7", "icon": "&#x2665;"},
-    "집중":  {"color": "#2C73D2", "bg": "#F0F4FF", "icon": "&#x25CE;"},
-    "행복":  {"color": "#E67E00", "bg": "#FFF8F0", "icon": "&#x2605;"},
+    "기본":  {"color": "#6B4E9A", "bg": "#F5F0FF"},
+    "귀여움": {"color": "#D63384", "bg": "#FFF0F7"},
+    "집중":  {"color": "#2C73D2", "bg": "#F0F4FF"},
+    "행복":  {"color": "#E67E00", "bg": "#FFF8F0"},
 }
+
+# SVG path shapes — one per keyword, font-independent
+_TITLE_SHAPES: list[tuple[str, str]] = [
+    ("회의",   '<rect x="130" y="110" width="140" height="100" rx="12" fill="{c}" opacity="0.8"/>'
+               '<polygon points="160,210 200,240 240,210" fill="{c}" opacity="0.8"/>'),
+    ("미팅",   '<circle cx="160" cy="150" r="38" fill="{c}" opacity="0.75"/>'
+               '<circle cx="240" cy="150" r="38" fill="{c}" opacity="0.75"/>'),
+    ("출장",   '<polygon points="200,90 310,230 90,230" fill="{c}" opacity="0.8"/>'),
+    ("외근",   '<circle cx="200" cy="160" r="65" fill="none" stroke="{c}" stroke-width="18" opacity="0.8"/>'
+               '<polygon points="200,100 245,160 155,160" fill="{c}" opacity="0.8"/>'),
+    ("휴가",   '<circle cx="200" cy="160" r="52" fill="{c}" opacity="0.8"/>'
+               + "".join(
+                   f'<line x1="200" y1="160" x2="{int(200+95*math.cos(math.radians(a)))}"'
+                   f' y2="{int(160+95*math.sin(math.radians(a)))}"'
+                   f' stroke="{{c}}" stroke-width="14" stroke-linecap="round" opacity="0.6"/>'
+                   for a in range(0, 360, 45)
+               )),
+    ("프로젝트", '<rect x="110" y="110" width="60" height="60" rx="8" fill="{c}" opacity="0.8"/>'
+                '<rect x="185" y="110" width="105" height="60" rx="8" fill="{c}" opacity="0.5"/>'
+                '<rect x="110" y="185" width="105" height="60" rx="8" fill="{c}" opacity="0.5"/>'
+                '<rect x="230" y="185" width="60" height="60" rx="8" fill="{c}" opacity="0.8"/>'),
+    ("제안서",  '<rect x="130" y="95" width="140" height="175" rx="10" fill="{c}" opacity="0.8"/>'
+               '<rect x="148" y="128" width="104" height="12" rx="4" fill="white" opacity="0.9"/>'
+               '<rect x="148" y="155" width="104" height="12" rx="4" fill="white" opacity="0.9"/>'
+               '<rect x="148" y="182" width="80"  height="12" rx="4" fill="white" opacity="0.9"/>'),
+    ("작성",   '<rect x="145" y="95"  width="110" height="145" rx="8" fill="{c}" opacity="0.7"/>'
+               '<line x1="162" y1="130" x2="238" y2="130" stroke="white" stroke-width="10" stroke-linecap="round"/>'
+               '<line x1="162" y1="155" x2="238" y2="155" stroke="white" stroke-width="10" stroke-linecap="round"/>'
+               '<line x1="162" y1="180" x2="210" y2="180" stroke="white" stroke-width="10" stroke-linecap="round"/>'
+               '<line x1="195" y1="230" x2="270" y2="155" stroke="{c}" stroke-width="16" stroke-linecap="round"/>'
+               '<polygon points="265,148 280,175 252,170" fill="{c}" opacity="0.9"/>'),
+    ("고객",   '<circle cx="175" cy="140" r="42" fill="{c}" opacity="0.8"/>'
+               '<path d="M95 240 Q175 195 255 240" fill="{c}" opacity="0.8"/>'
+               '<circle cx="250" cy="148" r="34" fill="{c}" opacity="0.55"/>'
+               '<path d="M185 240 Q250 205 315 240" fill="{c}" opacity="0.5"/>'),
+    ("집중",   '<circle cx="200" cy="160" r="80" fill="none" stroke="{c}" stroke-width="16" opacity="0.8"/>'
+               '<circle cx="200" cy="160" r="52" fill="none" stroke="{c}" stroke-width="14" opacity="0.6"/>'
+               '<circle cx="200" cy="160" r="24" fill="{c}" opacity="0.9"/>'),
+    ("개발",   '<polygon points="155,120 130,160 155,200" fill="{c}" opacity="0.8"/>'
+               '<polygon points="245,120 270,160 245,200" fill="{c}" opacity="0.8"/>'
+               '<line x1="175" y1="195" x2="225" y2="125" stroke="{c}" stroke-width="16"'
+               ' stroke-linecap="round" opacity="0.7"/>'),
+]
+
+_FALLBACK_SHAPES = [
+    '<polygon points="200,95 285,250 115,250" fill="{c}" opacity="0.8"/>',
+    '<rect x="120" y="110" width="160" height="100" rx="16" fill="{c}" opacity="0.8"/>',
+    '<circle cx="200" cy="160" r="75" fill="{c}" opacity="0.8"/>',
+    '<polygon points="200,95 305,165 265,270 135,270 95,165" fill="{c}" opacity="0.8"/>',
+    '<circle cx="200" cy="160" r="80" fill="none" stroke="{c}" stroke-width="24" opacity="0.8"/>'
+    '<circle cx="200" cy="160" r="36" fill="{c}" opacity="0.9"/>',
+    '<rect x="120" y="120" width="72" height="72" rx="10" fill="{c}" opacity="0.8"/>'
+    '<rect x="208" y="120" width="72" height="72" rx="10" fill="{c}" opacity="0.5"/>'
+    '<rect x="120" y="208" width="72" height="72" rx="10" fill="{c}" opacity="0.5"/>'
+    '<rect x="208" y="208" width="72" height="72" rx="10" fill="{c}" opacity="0.8"/>',
+]
+
+
+def _pick_shape(title: str) -> str:
+    for keyword, shape in _TITLE_SHAPES:
+        if keyword in title:
+            return shape
+    return _FALLBACK_SHAPES[abs(hash(title)) % len(_FALLBACK_SHAPES)]
 
 
 def mock_image_url(title: str, style: str) -> str:
     cfg = _STYLE_CFG.get(style, _STYLE_CFG["기본"])
-    color, bg, icon = cfg["color"], cfg["bg"], cfg["icon"]
+    color, bg = cfg["color"], cfg["bg"]
     display = title[:10] if len(title) > 10 else title
+    shape = _pick_shape(title).replace("{c}", color)
 
     svg = (
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">'
         f'<rect width="400" height="400" rx="60" fill="{bg}"/>'
-        f'<circle cx="200" cy="155" r="95" fill="{color}" opacity="0.12"/>'
-        f'<text x="200" y="170" font-size="96" text-anchor="middle"'
-        f' dominant-baseline="middle" font-family="serif">{icon}</text>'
+        f'{shape}'
         f'<rect x="40" y="268" width="320" height="68" rx="14" fill="{color}"/>'
         f'<text x="200" y="308" font-size="36" font-weight="bold" fill="white"'
         f' text-anchor="middle" dominant-baseline="middle"'
