@@ -2,8 +2,10 @@
 
 import { useState, useCallback } from "react";
 import toast from "react-hot-toast";
-import { emojiApi } from "@/lib/api";
+import { emojiApi, mockApi } from "@/lib/api";
 import type { Emoji, EmojiListResponse, EmojiStyle } from "@/types";
+
+const isMockMode = process.env.NEXT_PUBLIC_MOCK_MODE === "true";
 
 export function useEmojiGenerate() {
   const [generating, setGenerating] = useState(false);
@@ -13,7 +15,9 @@ export function useEmojiGenerate() {
     setGenerating(true);
     setResult(null);
     try {
-      const emoji = await emojiApi.generate(title, style);
+      const emoji = isMockMode
+        ? await mockApi.generate(title, style)
+        : await emojiApi.generate(title, style);
       setResult(emoji);
       toast.success("이모티콘이 생성되었습니다!");
       return emoji;

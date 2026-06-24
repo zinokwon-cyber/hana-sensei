@@ -35,6 +35,16 @@ export const authApi = {
     api.get<User>("/api/auth/me").then((r) => r.data),
 };
 
+export const mockApi = {
+  login: (userIndex = 0): Promise<TokenResponse> =>
+    api.post<TokenResponse>(`/api/mock/login?user_index=${userIndex}`).then((r) => r.data),
+
+  generate: (title: string, style: EmojiStyle): Promise<Emoji> =>
+    api
+      .post<Emoji>("/api/mock/emojis/generate", { title, style })
+      .then((r) => r.data),
+};
+
 export const emojiApi = {
   generate: (title: string, style: EmojiStyle): Promise<Emoji> =>
     api

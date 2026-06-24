@@ -1,16 +1,21 @@
 "use client";
 
-import { useEffect, Suspense } from "react";
+import { useEffect, Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Shield, Zap, Sparkles, Users, Palette } from "lucide-react";
+import { Shield, Zap, Sparkles, Users, Palette, FlaskConical } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getAzureLoginUrl, isAuthenticated } from "@/lib/auth";
+import { getAzureLoginUrl, isAuthenticated, saveAuthData } from "@/lib/auth";
 import { useRouter } from "next/navigation";
+import axios from "axios";
+
+const isMockMode = process.env.NEXT_PUBLIC_MOCK_MODE === "true";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 function LoginContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const error = searchParams.get("error");
+  const [mockLoading, setMockLoading] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated()) {
@@ -20,6 +25,19 @@ function LoginContent() {
 
   const handleLogin = () => {
     window.location.href = getAzureLoginUrl();
+  };
+
+  const handleMockLogin = async () => {
+    setMockLoading(true);
+    try {
+      const res = await axios.post(`${API_URL}/api/mock/login?user_index=0`);
+      saveAuthData(res.data.access_token, res.data.user);
+      router.push("/generate");
+    } catch {
+      alert("Mock 로그인 실패 — 백엔드가 실행 중인지 확인해주세요.");
+    } finally {
+      setMockLoading(false);
+    }
   };
 
   const features = [
@@ -33,11 +51,9 @@ function LoginContent() {
     <div className="min-h-screen flex">
       {/* Left: Brand Panel */}
       <div className="hidden lg:flex lg:w-1/2 bg-brand-gradient flex-col justify-between p-12 relative overflow-hidden">
-        {/* Background decoration */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full -translate-y-48 translate-x-48" />
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/5 rounded-full translate-y-32 -translate-x-32" />
 
-        {/* Logo */}
         <div className="flex items-center gap-3 relative z-10">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
             <Zap className="h-5 w-5 text-white" />
@@ -48,7 +64,6 @@ function LoginContent() {
           </div>
         </div>
 
-        {/* Hero text */}
         <div className="relative z-10">
           <h2 className="text-4xl font-extrabold text-white leading-tight mb-4">
             업무를 더 재미있게,
@@ -60,7 +75,6 @@ function LoginContent() {
             <br />
             업무 커뮤니케이션을 더욱 생동감 있게 표현하세요.
           </p>
-
           <div className="grid grid-cols-1 gap-3">
             {features.map((f) => {
               const Icon = f.icon;
@@ -76,7 +90,6 @@ function LoginContent() {
           </div>
         </div>
 
-        {/* Footer */}
         <p className="text-white/40 text-xs relative z-10">
           © 2024 3TOP Co., Ltd. All rights reserved.
         </p>
@@ -112,13 +125,21 @@ function LoginContent() {
               </div>
             )}
 
+            {/* Mock mode banner */}
+            {isMockMode && (
+              <div className="mb-4 rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-xs text-amber-700 text-center">
+                <FlaskConical className="inline h-3.5 w-3.5 mr-1 mb-0.5" />
+                데모 모드 — 실제 API 키 없이 UI를 체험합니다
+              </div>
+            )}
+
             <Button
               variant="brand"
               size="lg"
               className="w-full gap-3"
               onClick={handleLogin}
+              disabled={isMockMode}
             >
-              {/* Microsoft icon */}
               <svg viewBox="0 0 21 21" className="h-5 w-5" fill="none">
                 <rect x="1" y="1" width="9" height="9" fill="#f25022" />
                 <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
@@ -128,11 +149,25 @@ function LoginContent() {
               Microsoft 계정으로 로그인
             </Button>
 
+            {/* Mock login button */}
+            {isMockMode && (
+              <Button
+                variant="outline"
+                size="lg"
+                className="w-full gap-2 mt-3"
+                onClick={handleMockLogin}
+                disabled={mockLoading}
+              >
+                <FlaskConical className="h-4 w-4" />
+                {mockLoading ? "로그인 중..." : "데모 계정으로 시작하기"}
+              </Button>
+            )}
+
             <div className="mt-6 text-center">
               <p className="text-xs text-gray-400">
-                Microsoft Entra ID (Azure AD)를 통해
-                <br />
-                안전하게 인증됩니다
+                {isMockMode
+                  ? "데모 모드에서는 Microsoft 로그인 대신\n데모 계정으로 UI를 체험할 수 있습니다."
+                  : "Microsoft Entra ID (Azure AD)를 통해\n안전하게 인증됩니다"}
               </p>
             </div>
           </div>

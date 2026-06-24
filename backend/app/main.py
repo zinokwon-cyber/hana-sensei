@@ -25,7 +25,15 @@ app.add_middleware(
 app.include_router(auth.router, prefix=settings.API_PREFIX)
 app.include_router(emojis.router, prefix=settings.API_PREFIX)
 
+if settings.MOCK_MODE:
+    from app.api import mock
+    app.include_router(mock.router, prefix=settings.API_PREFIX)
+
 
 @app.get("/health", tags=["Health"])
 async def health_check():
-    return JSONResponse({"status": "healthy", "service": settings.APP_NAME})
+    return JSONResponse({
+        "status": "healthy",
+        "service": settings.APP_NAME,
+        "mock_mode": settings.MOCK_MODE,
+    })

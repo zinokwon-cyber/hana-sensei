@@ -10,34 +10,38 @@ class Settings(BaseSettings):
     API_PREFIX: str = "/api"
     ALLOWED_ORIGINS: list[str] = ["http://localhost:3000"]
 
+    # Mock mode — set MOCK_MODE=true to run without real API keys
+    MOCK_MODE: bool = False
+
     # Database
     DATABASE_URL: str
+
     DATABASE_POOL_SIZE: int = 10
     DATABASE_MAX_OVERFLOW: int = 20
 
-    # Microsoft Entra ID (Azure AD)
-    AZURE_CLIENT_ID: str
-    AZURE_CLIENT_SECRET: str
-    AZURE_TENANT_ID: str
-    AZURE_REDIRECT_URI: str = "http://localhost:3000/api/auth/callback/azure-ad"
+    # Microsoft Entra ID (Azure AD) — optional in mock mode
+    AZURE_CLIENT_ID: Optional[str] = None
+    AZURE_CLIENT_SECRET: Optional[str] = None
+    AZURE_TENANT_ID: Optional[str] = None
+    AZURE_REDIRECT_URI: str = "http://localhost:3000/auth/callback"
 
     # JWT
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 8  # 8 hours
 
-    # OpenAI
-    OPENAI_API_KEY: str
+    # OpenAI — optional in mock mode
+    OPENAI_API_KEY: Optional[str] = None
     OPENAI_IMAGE_MODEL: str = "dall-e-3"
     OPENAI_IMAGE_SIZE: str = "1024x1024"
     OPENAI_IMAGE_QUALITY: str = "standard"
 
-    # AWS S3
-    AWS_ACCESS_KEY_ID: str
-    AWS_SECRET_ACCESS_KEY: str
+    # AWS S3 — optional in mock mode
+    AWS_ACCESS_KEY_ID: Optional[str] = None
+    AWS_SECRET_ACCESS_KEY: Optional[str] = None
     AWS_REGION: str = "ap-northeast-2"
-    S3_BUCKET_NAME: str
-    S3_BASE_URL: Optional[str] = None  # CDN URL or S3 URL
+    S3_BUCKET_NAME: Optional[str] = None
+    S3_BASE_URL: Optional[str] = None
 
     class Config:
         env_file = ".env"
