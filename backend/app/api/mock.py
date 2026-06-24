@@ -2,7 +2,7 @@
 Allows running the full UI without real OpenAI / Azure / AWS credentials.
 """
 import uuid
-import random
+import base64
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -21,15 +21,35 @@ MOCK_USERS = [
     {"email": "admin@3top.co.kr", "name": "관리자", "azure_oid": "mock-oid-002"},
 ]
 
-# Placeholder emoji images using picsum (random but deterministic by seed)
-PLACEHOLDER_COLORS = ["6B4E9A", "3E5CB8", "2C73D2", "8B6DBF", "4A8EE8"]
+_STYLE_CFG = {
+    "기본":  {"color": "#6B4E9A", "bg": "#F5F0FF", "icon": "&#x1F4BC;"},
+    "귀여움": {"color": "#D63384", "bg": "#FFF0F7", "icon": "&#x2665;"},
+    "집중":  {"color": "#2C73D2", "bg": "#F0F4FF", "icon": "&#x25CE;"},
+    "행복":  {"color": "#E67E00", "bg": "#FFF8F0", "icon": "&#x2605;"},
+}
 
 
 def mock_image_url(title: str, style: str) -> str:
-    seed = abs(hash(title + style)) % 1000
-    color = PLACEHOLDER_COLORS[seed % len(PLACEHOLDER_COLORS)]
-    label = f"{title}+({style})"
-    return f"https://placehold.co/512x512/{color}/ffffff?text={label}"
+    cfg = _STYLE_CFG.get(style, _STYLE_CFG["기본"])
+    color, bg, icon = cfg["color"], cfg["bg"], cfg["icon"]
+    display = title[:10] if len(title) > 10 else title
+
+    svg = (
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">'
+        f'<rect width="400" height="400" rx="60" fill="{bg}"/>'
+        f'<circle cx="200" cy="155" r="95" fill="{color}" opacity="0.12"/>'
+        f'<text x="200" y="170" font-size="96" text-anchor="middle"'
+        f' dominant-baseline="middle" font-family="serif">{icon}</text>'
+        f'<rect x="40" y="268" width="320" height="68" rx="14" fill="{color}"/>'
+        f'<text x="200" y="308" font-size="36" font-weight="bold" fill="white"'
+        f' text-anchor="middle" dominant-baseline="middle"'
+        f' font-family="Arial,Helvetica,sans-serif">{display}</text>'
+        f'<text x="200" y="368" font-size="20" fill="{color}" text-anchor="middle"'
+        f' opacity="0.55" font-family="Arial,Helvetica,sans-serif">3TOP Buddy · {style}</text>'
+        f'</svg>'
+    )
+    encoded = base64.b64encode(svg.encode("utf-8")).decode("ascii")
+    return f"data:image/svg+xml;base64,{encoded}"
 
 
 @router.post("/login", response_model=TokenResponse)

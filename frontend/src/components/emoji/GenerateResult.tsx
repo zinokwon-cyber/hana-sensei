@@ -1,7 +1,6 @@
 "use client";
 
-import Image from "next/image";
-import { Download, Share2, RotateCcw } from "lucide-react";
+import { Download, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -28,14 +27,12 @@ export function GenerateResult({ emoji, onReset }: GenerateResultProps) {
       </div>
 
       {/* Image Display */}
-      <div className="relative w-56 h-56 rounded-2xl bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-dashed border-gray-200 overflow-hidden shadow-lg">
-        <Image
+      <div className="relative w-56 h-56 rounded-2xl bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-dashed border-gray-200 overflow-hidden shadow-lg flex items-center justify-center">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
           src={emoji.image_url}
           alt={emoji.title}
-          fill
-          className="object-contain p-4"
-          sizes="224px"
-          priority
+          className="object-contain p-4 w-full h-full"
         />
       </div>
 

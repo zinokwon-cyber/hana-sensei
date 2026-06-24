@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useState } from "react";
 import { Trash2, Download, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -38,13 +37,12 @@ export function EmojiCard({ emoji, onDelete }: EmojiCardProps) {
         className="group cursor-pointer overflow-hidden hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5"
         onClick={() => setShowDetail(true)}
       >
-        <div className="relative aspect-square bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden">
-          <Image
+        <div className="relative aspect-square bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden flex items-center justify-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
             src={emoji.image_url}
             alt={emoji.title}
-            fill
-            className="object-contain p-4 group-hover:scale-105 transition-transform duration-300"
-            sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+            className="object-contain p-4 w-full h-full group-hover:scale-105 transition-transform duration-300"
           />
           {/* Hover overlay */}
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100">
@@ -77,13 +75,12 @@ export function EmojiCard({ emoji, onDelete }: EmojiCardProps) {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="relative aspect-square rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden">
-            <Image
+          <div className="relative aspect-square rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden flex items-center justify-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
               src={emoji.image_url}
               alt={emoji.title}
-              fill
-              className="object-contain p-6"
-              sizes="448px"
+              className="object-contain p-6 w-full h-full"
             />
           </div>
 
