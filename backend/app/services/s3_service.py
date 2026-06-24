@@ -1,16 +1,27 @@
-import uuid
+import asyncio
 import boto3
 from botocore.exceptions import ClientError
 from io import BytesIO
+from typing import TYPE_CHECKING
 
 from app.core.config import settings
 
-s3_client = boto3.client(
-    "s3",
-    aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-    aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-    region_name=settings.AWS_REGION,
-)
+if TYPE_CHECKING:
+    from mypy_boto3_s3 import S3Client
+
+_s3_client = None
+
+
+def _get_s3():
+    global _s3_client
+    if _s3_client is None:
+        _s3_client = boto3.client(
+            "s3",
+            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+            region_name=settings.AWS_REGION,
+        )
+    return _s3_client
 
 
 def get_public_url(s3_key: str) -> str:
@@ -26,8 +37,10 @@ async def upload_emoji_image(
 ) -> str:
     """Upload PNG image bytes to S3 and return the public URL."""
     s3_key = f"emojis/{user_id}/{emoji_id}.png"
+    s3 = _get_s3()
 
-    s3_client.put_object(
+    await asyncio.to_thread(
+        s3.put_object,
         Bucket=settings.S3_BUCKET_NAME,
         Key=s3_key,
         Body=BytesIO(image_bytes),
@@ -47,6 +60,7 @@ async def delete_emoji_image(image_url: str) -> None:
             base = f"https://{settings.S3_BUCKET_NAME}.s3.{settings.AWS_REGION}.amazonaws.com/"
             s3_key = image_url.replace(base, "")
 
-        s3_client.delete_object(Bucket=settings.S3_BUCKET_NAME, Key=s3_key)
+        s3 = _get_s3()
+        await asyncio.to_thread(s3.delete_object, Bucket=settings.S3_BUCKET_NAME, Key=s3_key)
     except ClientError:
-        pass  # Log and continue; S3 delete failures are non-critical
+        pass  # S3 delete failures are non-critical

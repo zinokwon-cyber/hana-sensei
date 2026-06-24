@@ -12,9 +12,6 @@ from app.schemas.user import TokenResponse, UserResponse
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 MICROSOFT_GRAPH_ME_URL = "https://graph.microsoft.com/v1.0/me"
-MICROSOFT_TOKEN_URL = (
-    f"https://login.microsoftonline.com/{settings.AZURE_TENANT_ID}/oauth2/v2.0/token"
-)
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -23,10 +20,12 @@ async def login_with_azure(
     db: AsyncSession = Depends(get_db),
 ):
     """Exchange Azure AD authorization code for JWT access token."""
+    token_url = f"https://login.microsoftonline.com/{settings.AZURE_TENANT_ID}/oauth2/v2.0/token"
+
     # Exchange code for tokens with Microsoft
     async with httpx.AsyncClient() as client:
         token_response = await client.post(
-            MICROSOFT_TOKEN_URL,
+            token_url,
             data={
                 "client_id": settings.AZURE_CLIENT_ID,
                 "client_secret": settings.AZURE_CLIENT_SECRET,

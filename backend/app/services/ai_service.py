@@ -1,10 +1,17 @@
-import httpx
 import base64
 from openai import AsyncOpenAI
 
 from app.core.config import settings
 
-client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+_client: AsyncOpenAI | None = None
+
+
+def _get_client() -> AsyncOpenAI:
+    global _client
+    if _client is None:
+        _client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+    return _client
+
 
 STYLE_MODIFIERS = {
     "기본": "neutral expression, standard pose, professional look",
@@ -28,7 +35,7 @@ def build_prompt(title: str, style: str) -> str:
     style_mod = STYLE_MODIFIERS.get(style, STYLE_MODIFIERS["기본"])
     context = STATUS_CONTEXT.get(title, f"doing {title} activity")
 
-    prompt = (
+    return (
         f"A cute corporate mascot character called '3TOP Buddy' as a sticker emoji. "
         f"The character is round and cute with an AI assistant vibe, friendly expression, "
         f"and consistent design. "
@@ -43,14 +50,13 @@ def build_prompt(title: str, style: str) -> str:
         f"Kakao emoticon quality, high detail, clean vector-like illustration. "
         f"512x512 pixel equivalent composition."
     )
-    return prompt
 
 
 async def generate_emoji_image(title: str, style: str) -> tuple[bytes, str]:
     """Generate emoji image using OpenAI DALL-E and return (image_bytes, prompt)."""
     prompt = build_prompt(title, style)
 
-    response = await client.images.generate(
+    response = await _get_client().images.generate(
         model=settings.OPENAI_IMAGE_MODEL,
         prompt=prompt,
         size=settings.OPENAI_IMAGE_SIZE,
