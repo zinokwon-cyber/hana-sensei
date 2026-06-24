@@ -93,15 +93,51 @@ def _pick_shape(title: str) -> str:
     return _FALLBACK_SHAPES[abs(hash(title)) % len(_FALLBACK_SHAPES)]
 
 
+def _style_deco(style: str, color: str) -> str:
+    """Return style-specific background decoration that makes each style visually distinct."""
+    if style == "귀여움":
+        # Floating bubble circles around the shape
+        return (
+            f'<circle cx="98"  cy="95"  r="30" fill="{color}" opacity="0.22"/>'
+            f'<circle cx="312" cy="82"  r="22" fill="{color}" opacity="0.18"/>'
+            f'<circle cx="325" cy="235" r="26" fill="{color}" opacity="0.2"/>'
+            f'<circle cx="85"  cy="248" r="19" fill="{color}" opacity="0.17"/>'
+            f'<circle cx="200" cy="58"  r="15" fill="{color}" opacity="0.14"/>'
+        )
+    elif style == "집중":
+        # Crosshair + concentric rings — radar feel
+        return (
+            f'<circle cx="200" cy="160" r="170" fill="none" stroke="{color}" stroke-width="3" opacity="0.1"/>'
+            f'<circle cx="200" cy="160" r="135" fill="none" stroke="{color}" stroke-width="2" opacity="0.08"/>'
+            f'<line x1="200" y1="0"  x2="200" y2="320" stroke="{color}" stroke-width="2" opacity="0.09"/>'
+            f'<line x1="30"  y1="160" x2="370" y2="160" stroke="{color}" stroke-width="2" opacity="0.09"/>'
+        )
+    elif style == "행복":
+        # 4-point sparkle stars at corners
+        def _star(cx: int, cy: int, r: int, op: float) -> str:
+            pts = []
+            for i in range(8):
+                a = math.radians(i * 45 - 90)
+                radius = r if i % 2 == 0 else r * 0.42
+                pts.append(f"{int(cx + radius * math.cos(a))},{int(cy + radius * math.sin(a))}")
+            return f'<polygon points="{" ".join(pts)}" fill="{color}" opacity="{op}"/>'
+        return _star(105, 88, 32, 0.42) + _star(302, 74, 24, 0.35) + _star(318, 238, 28, 0.38) + _star(88, 252, 20, 0.3)
+    else:  # 기본
+        # Subtle soft halo — understated, professional
+        return f'<circle cx="200" cy="160" r="155" fill="{color}" opacity="0.07"/>'
+
+
 def mock_image_url(title: str, style: str) -> str:
     cfg = _STYLE_CFG.get(style, _STYLE_CFG["기본"])
     color, bg = cfg["color"], cfg["bg"]
     display = title[:10] if len(title) > 10 else title
     shape = _pick_shape(title).replace("{c}", color)
+    deco = _style_deco(style, color)
 
     svg = (
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">'
         f'<rect width="400" height="400" rx="60" fill="{bg}"/>'
+        f'{deco}'
         f'{shape}'
         f'<rect x="40" y="268" width="320" height="68" rx="14" fill="{color}"/>'
         f'<text x="200" y="308" font-size="36" font-weight="bold" fill="white"'
