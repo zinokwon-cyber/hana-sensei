@@ -11,7 +11,7 @@ import type { EmojiStyle } from "@/types";
 import { EMOJI_STYLES, STATUS_PRESETS } from "@/types";
 
 interface GenerateFormProps {
-  onGenerate: (title: string, style: EmojiStyle) => Promise<void>;
+  onGenerate: (title: string, style: EmojiStyle) => Promise<unknown>;
   generating: boolean;
 }
 
