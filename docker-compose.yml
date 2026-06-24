@@ -45,12 +45,16 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_MOCK_MODE: ${NEXT_PUBLIC_MOCK_MODE:-false}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+        NEXT_PUBLIC_AZURE_CLIENT_ID: ${NEXT_PUBLIC_AZURE_CLIENT_ID:-}
+        NEXT_PUBLIC_AZURE_TENANT_ID: ${NEXT_PUBLIC_AZURE_TENANT_ID:-}
+        NEXT_PUBLIC_AZURE_REDIRECT_URI: ${NEXT_PUBLIC_AZURE_REDIRECT_URI:-http://localhost:3000/auth/callback}
     container_name: emoji_studio_frontend
     restart: unless-stopped
     env_file:
       - .env
-    environment:
-      NEXT_PUBLIC_API_URL: http://backend:8000
     ports:
       - "3000:3000"
     depends_on:
