@@ -2,41 +2,79 @@
 
 import { useEffect, Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Shield, Zap, Sparkles, Users, Palette, FlaskConical } from "lucide-react";
+import { Shield, Zap, Sparkles, Users, Palette, Eye, EyeOff, FlaskConical } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getAzureLoginUrl, isAuthenticated, saveAuthData } from "@/lib/auth";
+import { isAuthenticated, saveAuthData } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 
 const isMockMode = process.env.NEXT_PUBLIC_MOCK_MODE === "true";
+const authMode = process.env.NEXT_PUBLIC_AUTH_MODE || "password";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 function LoginContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const error = searchParams.get("error");
-  const [mockLoading, setMockLoading] = useState(false);
+
+  const [tab, setTab] = useState<"login" | "register">("login");
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [formError, setFormError] = useState("");
 
   useEffect(() => {
-    if (isAuthenticated()) {
-      router.replace("/generate");
-    }
+    if (isAuthenticated()) router.replace("/generate");
   }, [router]);
 
-  const handleLogin = () => {
-    window.location.href = getAzureLoginUrl();
+  const handlePasswordLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError("");
+    setLoading(true);
+    try {
+      const res = await axios.post(`${API_URL}/api/auth/login-password`, { email, password });
+      saveAuthData(res.data.access_token, res.data.user);
+      router.push("/generate");
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      setFormError(msg || "로그인에 실패했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError("");
+    if (password.length < 8) {
+      setFormError("비밀번호는 8자 이상이어야 합니다.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await axios.post(`${API_URL}/api/auth/register`, { email, name, password });
+      saveAuthData(res.data.access_token, res.data.user);
+      router.push("/generate");
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      setFormError(msg || "회원가입에 실패했습니다.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleMockLogin = async () => {
-    setMockLoading(true);
+    setLoading(true);
     try {
       const res = await axios.post(`${API_URL}/api/mock/login?user_index=0`);
       saveAuthData(res.data.access_token, res.data.user);
       router.push("/generate");
     } catch {
-      alert("Mock 로그인 실패 — 백엔드가 실행 중인지 확인해주세요.");
+      setFormError("Mock 로그인 실패 — 백엔드가 실행 중인지 확인해주세요.");
     } finally {
-      setMockLoading(false);
+      setLoading(false);
     }
   };
 
@@ -95,7 +133,7 @@ function LoginContent() {
         </p>
       </div>
 
-      {/* Right: Login Panel */}
+      {/* Right: Login/Register Panel */}
       <div className="flex-1 flex items-center justify-center p-8 bg-gray-50">
         <div className="w-full max-w-sm">
           {/* Mobile logo */}
@@ -110,66 +148,128 @@ function LoginContent() {
           </div>
 
           <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
-            <div className="text-center mb-8">
-              <h1 className="text-2xl font-bold text-gray-900">로그인</h1>
-              <p className="text-sm text-gray-500 mt-2">
-                3TOP 회사 계정으로 로그인하세요
-              </p>
+            {/* Tab switcher */}
+            {authMode === "password" && !isMockMode && (
+              <div className="flex gap-1 p-1 bg-gray-100 rounded-xl mb-6">
+                <button
+                  onClick={() => { setTab("login"); setFormError(""); }}
+                  className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
+                    tab === "login" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"
+                  }`}
+                >
+                  로그인
+                </button>
+                <button
+                  onClick={() => { setTab("register"); setFormError(""); }}
+                  className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
+                    tab === "register" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"
+                  }`}
+                >
+                  회원가입
+                </button>
+              </div>
+            )}
+
+            <div className="text-center mb-6">
+              <h1 className="text-2xl font-bold text-gray-900">
+                {tab === "login" ? "로그인" : "회원가입"}
+              </h1>
+              <p className="text-sm text-gray-500 mt-1">3TOP 임직원 전용 서비스</p>
             </div>
 
-            {error && (
-              <div className="mb-6 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 text-center">
-                {error === "auth_failed"
-                  ? "인증에 실패했습니다. 다시 시도해주세요."
-                  : "오류가 발생했습니다."}
+            {(error || formError) && (
+              <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 text-center">
+                {formError || (error === "auth_failed" ? "인증에 실패했습니다." : "오류가 발생했습니다.")}
               </div>
             )}
 
-            {/* Mock mode banner */}
-            {isMockMode && (
-              <div className="mb-4 rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-xs text-amber-700 text-center">
-                <FlaskConical className="inline h-3.5 w-3.5 mr-1 mb-0.5" />
-                데모 모드 — 실제 API 키 없이 UI를 체험합니다
-              </div>
-            )}
-
-            <Button
-              variant="brand"
-              size="lg"
-              className="w-full gap-3"
-              onClick={handleLogin}
-              disabled={isMockMode}
-            >
-              <svg viewBox="0 0 21 21" className="h-5 w-5" fill="none">
-                <rect x="1" y="1" width="9" height="9" fill="#f25022" />
-                <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
-                <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
-                <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
-              </svg>
-              Microsoft 계정으로 로그인
-            </Button>
-
-            {/* Mock login button */}
-            {isMockMode && (
+            {isMockMode ? (
               <Button
                 variant="outline"
                 size="lg"
-                className="w-full gap-2 mt-3"
+                className="w-full gap-2"
                 onClick={handleMockLogin}
-                disabled={mockLoading}
+                disabled={loading}
               >
                 <FlaskConical className="h-4 w-4" />
-                {mockLoading ? "로그인 중..." : "데모 계정으로 시작하기"}
+                {loading ? "로그인 중..." : "데모 계정으로 시작하기"}
+              </Button>
+            ) : authMode === "password" ? (
+              <form onSubmit={tab === "login" ? handlePasswordLogin : handleRegister} className="space-y-4">
+                {tab === "register" && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">이름</label>
+                    <input
+                      type="text"
+                      required
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="홍길동"
+                      className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-purple/30"
+                    />
+                  </div>
+                )}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">이메일</label>
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="hong@3top.co.kr"
+                    className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-purple/30"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">비밀번호</label>
+                  <div className="relative">
+                    <input
+                      type={showPw ? "text" : "password"}
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder={tab === "register" ? "8자 이상" : "비밀번호 입력"}
+                      className="w-full px-3 py-2.5 pr-10 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-purple/30"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPw(!showPw)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                    >
+                      {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+                <Button
+                  type="submit"
+                  variant="brand"
+                  size="lg"
+                  className="w-full"
+                  disabled={loading}
+                >
+                  {loading ? "처리 중..." : tab === "login" ? "로그인" : "가입하기"}
+                </Button>
+              </form>
+            ) : (
+              /* Azure AD mode */
+              <Button
+                variant="brand"
+                size="lg"
+                className="w-full gap-3"
+                onClick={() => {
+                  const { getAzureLoginUrl } = require("@/lib/auth");
+                  window.location.href = getAzureLoginUrl();
+                }}
+              >
+                <svg viewBox="0 0 21 21" className="h-5 w-5" fill="none">
+                  <rect x="1" y="1" width="9" height="9" fill="#f25022" />
+                  <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
+                  <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
+                  <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
+                </svg>
+                Microsoft 계정으로 로그인
               </Button>
             )}
-
-            <div className="mt-6 text-center">
-              <p className="text-xs text-gray-400">
-                {isMockMode
-                  ? "데모 모드에서는 Microsoft 로그인 대신\n데모 계정으로 UI를 체험할 수 있습니다."
-                  : "Microsoft Entra ID (Azure AD)를 통해\n안전하게 인증됩니다"}
-              </p>
-            </div>
           </div>
 
           <p className="text-center text-xs text-gray-400 mt-6">

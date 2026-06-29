@@ -1,4 +1,7 @@
+import hashlib
+import secrets
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, EmailStr
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 import httpx
@@ -10,6 +13,31 @@ from app.models.user import User
 from app.schemas.user import TokenResponse, UserResponse
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+
+
+def _hash_password(password: str) -> str:
+    salt = secrets.token_hex(16)
+    h = hashlib.sha256(f"{salt}{password}".encode()).hexdigest()
+    return f"{salt}:{h}"
+
+
+def _verify_password(password: str, hashed: str) -> bool:
+    try:
+        salt, h = hashed.split(":", 1)
+        return hashlib.sha256(f"{salt}{password}".encode()).hexdigest() == h
+    except Exception:
+        return False
+
+
+class RegisterRequest(BaseModel):
+    email: EmailStr
+    name: str
+    password: str
+
+
+class LoginPasswordRequest(BaseModel):
+    email: EmailStr
+    password: str
 
 MICROSOFT_GRAPH_ME_URL = "https://graph.microsoft.com/v1.0/me"
 
@@ -96,6 +124,64 @@ async def login_with_azure(
         access_token=access_token,
         user=UserResponse.model_validate(user),
     )
+
+
+@router.post("/register", response_model=TokenResponse)
+async def register(
+    req: RegisterRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Register a new account with email and password."""
+    if settings.ALLOWED_EMAIL_DOMAINS:
+        domain = req.email.split("@")[-1]
+        if domain not in settings.ALLOWED_EMAIL_DOMAINS:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"이 이메일 도메인은 가입이 허용되지 않습니다: @{domain}",
+            )
+
+    result = await db.execute(select(User).where(User.email == req.email))
+    if result.scalar_one_or_none():
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="이미 가입된 이메일입니다.")
+
+    if len(req.password) < 8:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="비밀번호는 8자 이상이어야 합니다.")
+
+    is_admin = bool(settings.ADMIN_EMAILS and req.email in settings.ADMIN_EMAILS)
+    user = User(
+        email=req.email,
+        name=req.name,
+        password_hash=_hash_password(req.password),
+        is_admin=is_admin,
+    )
+    db.add(user)
+    await db.flush()
+    await db.refresh(user)
+
+    token = create_access_token(data={"sub": str(user.id)})
+    return TokenResponse(access_token=token, user=UserResponse.model_validate(user))
+
+
+@router.post("/login-password", response_model=TokenResponse)
+async def login_with_password(
+    req: LoginPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Login with email and password."""
+    result = await db.execute(select(User).where(User.email == req.email))
+    user = result.scalar_one_or_none()
+
+    if not user or not user.password_hash or not _verify_password(req.password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="이메일 또는 비밀번호가 올바르지 않습니다.",
+        )
+
+    if settings.ADMIN_EMAILS and req.email in settings.ADMIN_EMAILS:
+        user.is_admin = True
+
+    token = create_access_token(data={"sub": str(user.id)})
+    return TokenResponse(access_token=token, user=UserResponse.model_validate(user))
 
 
 @router.get("/me", response_model=UserResponse)

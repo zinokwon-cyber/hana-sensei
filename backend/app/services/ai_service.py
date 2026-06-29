@@ -1,4 +1,6 @@
 import base64
+import urllib.parse
+import httpx
 from openai import AsyncOpenAI
 
 from app.core.config import settings
@@ -52,10 +54,8 @@ def build_prompt(title: str, style: str) -> str:
     )
 
 
-async def generate_emoji_image(title: str, style: str) -> tuple[bytes, str]:
-    """Generate emoji image using OpenAI DALL-E and return (image_bytes, prompt)."""
+async def _generate_openai(title: str, style: str) -> tuple[bytes, str]:
     prompt = build_prompt(title, style)
-
     response = await _get_client().images.generate(
         model=settings.OPENAI_IMAGE_MODEL,
         prompt=prompt,
@@ -64,8 +64,26 @@ async def generate_emoji_image(title: str, style: str) -> tuple[bytes, str]:
         n=1,
         response_format="b64_json",
     )
+    return base64.b64decode(response.data[0].b64_json), prompt
 
-    image_b64 = response.data[0].b64_json
-    image_bytes = base64.b64decode(image_b64)
 
-    return image_bytes, prompt
+async def _generate_pollinations(title: str, style: str) -> tuple[bytes, str]:
+    """Free image generation via Pollinations.ai — no API key required."""
+    prompt = build_prompt(title, style)
+    seed = abs(hash(f"{title}{style}")) % 999999
+    encoded = urllib.parse.quote(prompt, safe="")
+    url = (
+        f"https://image.pollinations.ai/prompt/{encoded}"
+        f"?width=1024&height=1024&nologo=true&model=flux&seed={seed}"
+    )
+    async with httpx.AsyncClient(timeout=120, follow_redirects=True) as client:
+        response = await client.get(url)
+        response.raise_for_status()
+        return response.content, prompt
+
+
+async def generate_emoji_image(title: str, style: str) -> tuple[bytes, str]:
+    """Generate emoji image and return (image_bytes, prompt)."""
+    if settings.IMAGE_PROVIDER == "openai":
+        return await _generate_openai(title, style)
+    return await _generate_pollinations(title, style)

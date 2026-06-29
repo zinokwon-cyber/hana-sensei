@@ -15,18 +15,29 @@ _s3_client = None
 def _get_s3():
     global _s3_client
     if _s3_client is None:
-        _s3_client = boto3.client(
-            "s3",
-            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-            region_name=settings.AWS_REGION,
-        )
+        if settings.STORAGE_PROVIDER == "minio":
+            _s3_client = boto3.client(
+                "s3",
+                endpoint_url=settings.MINIO_ENDPOINT,
+                aws_access_key_id=settings.MINIO_ROOT_USER,
+                aws_secret_access_key=settings.MINIO_ROOT_PASSWORD,
+                region_name="us-east-1",
+            )
+        else:
+            _s3_client = boto3.client(
+                "s3",
+                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+                region_name=settings.AWS_REGION,
+            )
     return _s3_client
 
 
 def get_public_url(s3_key: str) -> str:
     if settings.S3_BASE_URL:
         return f"{settings.S3_BASE_URL.rstrip('/')}/{s3_key}"
+    if settings.STORAGE_PROVIDER == "minio":
+        return f"http://localhost:9000/{settings.S3_BUCKET_NAME}/{s3_key}"
     return f"https://{settings.S3_BUCKET_NAME}.s3.{settings.AWS_REGION}.amazonaws.com/{s3_key}"
 
 
