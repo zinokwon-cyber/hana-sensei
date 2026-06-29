@@ -84,6 +84,9 @@ async def login_with_azure(
         user = User(email=email, name=name, azure_oid=azure_oid)
         db.add(user)
 
+    if settings.ADMIN_EMAILS and email in settings.ADMIN_EMAILS:
+        user.is_admin = True
+
     await db.flush()
     await db.refresh(user)
 

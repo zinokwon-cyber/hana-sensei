@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     # Mock mode — set MOCK_MODE=true to run without real API keys
     MOCK_MODE: bool = False
 
+    # Comma-separated list of emails that receive admin privileges on login
+    ADMIN_EMAILS: list[str] = []
+
     # Database
     DATABASE_URL: str
 

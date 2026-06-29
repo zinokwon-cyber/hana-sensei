@@ -1,5 +1,18 @@
 import axios from "axios";
-import type { Emoji, EmojiListResponse, EmojiStyle, TokenResponse, User } from "@/types";
+import type {
+  AdminDashboard,
+  AdminEmojiListResponse,
+  AdminUserListResponse,
+  DailyReportItem,
+  Emoji,
+  EmojiListResponse,
+  EmojiStyle,
+  HourlyReportItem,
+  StyleReportItem,
+  TokenResponse,
+  User,
+  WeekdayReportItem,
+} from "@/types";
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000",
@@ -61,6 +74,41 @@ export const emojiApi = {
 
   delete: (id: string): Promise<void> =>
     api.delete(`/api/emojis/${id}`).then(() => undefined),
+};
+
+export const adminApi = {
+  getDashboard: (): Promise<AdminDashboard> =>
+    api.get<AdminDashboard>("/api/admin/dashboard").then((r) => r.data),
+
+  getDailyReport: (days = 30): Promise<DailyReportItem[]> =>
+    api.get<DailyReportItem[]>("/api/admin/reports/daily", { params: { days } }).then((r) => r.data),
+
+  getWeekdayReport: (): Promise<WeekdayReportItem[]> =>
+    api.get<WeekdayReportItem[]>("/api/admin/reports/by-weekday").then((r) => r.data),
+
+  getHourlyReport: (): Promise<HourlyReportItem[]> =>
+    api.get<HourlyReportItem[]>("/api/admin/reports/by-hour").then((r) => r.data),
+
+  getStyleReport: (): Promise<StyleReportItem[]> =>
+    api.get<StyleReportItem[]>("/api/admin/reports/by-style").then((r) => r.data),
+
+  listUsers: (page = 1, size = 20, search = ""): Promise<AdminUserListResponse> =>
+    api
+      .get<AdminUserListResponse>("/api/admin/users", { params: { page, size, search } })
+      .then((r) => r.data),
+
+  toggleAdmin: (userId: string, isAdmin: boolean): Promise<void> =>
+    api
+      .patch(`/api/admin/users/${userId}/admin`, null, { params: { is_admin: isAdmin } })
+      .then(() => undefined),
+
+  listEmojis: (page = 1, size = 20, search = ""): Promise<AdminEmojiListResponse> =>
+    api
+      .get<AdminEmojiListResponse>("/api/admin/emojis", { params: { page, size, search } })
+      .then((r) => r.data),
+
+  deleteEmoji: (id: string): Promise<void> =>
+    api.delete(`/api/admin/emojis/${id}`).then(() => undefined),
 };
 
 export default api;

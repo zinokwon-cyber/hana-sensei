@@ -18,8 +18,8 @@ from app.schemas.emoji import EmojiGenerateRequest, EmojiResponse
 router = APIRouter(prefix="/mock", tags=["Mock (dev only)"])
 
 MOCK_USERS = [
-    {"email": "demo@3top.co.kr", "name": "데모 사용자", "azure_oid": "mock-oid-001"},
-    {"email": "admin@3top.co.kr", "name": "관리자", "azure_oid": "mock-oid-002"},
+    {"email": "demo@3top.co.kr", "name": "데모 사용자", "azure_oid": "mock-oid-001", "is_admin": False},
+    {"email": "admin@3top.co.kr", "name": "관리자", "azure_oid": "mock-oid-002", "is_admin": True},
 ]
 
 _STYLE_CFG = {
@@ -168,10 +168,14 @@ async def mock_login(
             email=user_data["email"],
             name=user_data["name"],
             azure_oid=user_data["azure_oid"],
+            is_admin=user_data.get("is_admin", False),
         )
         db.add(user)
-        await db.flush()
-        await db.refresh(user)
+    else:
+        user.is_admin = user_data.get("is_admin", False)
+
+    await db.flush()
+    await db.refresh(user)
 
     token = create_access_token(data={"sub": str(user.id)})
     return TokenResponse(access_token=token, user=UserResponse.model_validate(user))

@@ -2,28 +2,23 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Sparkles, Grid3X3, User, LogOut, Zap } from "lucide-react";
+import { Sparkles, Grid3X3, User, LogOut, Zap, LayoutDashboard, BarChart2, Users, Images, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 
 const navItems = [
-  {
-    href: "/generate",
-    label: "이모티콘 생성",
-    icon: Sparkles,
-  },
-  {
-    href: "/my-emojis",
-    label: "내 이모티콘",
-    icon: Grid3X3,
-  },
-  {
-    href: "/profile",
-    label: "내 정보",
-    icon: User,
-  },
+  { href: "/generate", label: "이모티콘 생성", icon: Sparkles },
+  { href: "/my-emojis", label: "내 이모티콘", icon: Grid3X3 },
+  { href: "/profile", label: "내 정보", icon: User },
+];
+
+const adminNavItems = [
+  { href: "/admin", label: "대시보드", icon: LayoutDashboard },
+  { href: "/admin/reports", label: "통계 리포트", icon: BarChart2 },
+  { href: "/admin/users", label: "사용자 관리", icon: Users },
+  { href: "/admin/emojis", label: "이모티콘 관리", icon: Images },
 ];
 
 export function Sidebar() {
@@ -73,6 +68,38 @@ export function Sidebar() {
             </Link>
           );
         })}
+
+        {user?.is_admin && (
+          <>
+            <Separator className="my-3" />
+            <div className="flex items-center gap-1.5 px-3 py-1">
+              <ShieldCheck size={13} className="text-brand-purple" />
+              <p className="text-xs font-semibold text-brand-purple uppercase tracking-widest">Admin</p>
+            </div>
+            {adminNavItems.map((item) => {
+              const Icon = item.icon;
+              const isActive =
+                item.href === "/admin"
+                  ? pathname === "/admin"
+                  : pathname.startsWith(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150",
+                    isActive
+                      ? "bg-brand-gradient text-white shadow-sm"
+                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                  )}
+                >
+                  <Icon className="h-4.5 w-4.5 shrink-0" size={18} />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </>
+        )}
       </nav>
 
       {/* User section */}

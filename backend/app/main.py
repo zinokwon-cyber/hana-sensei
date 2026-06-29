@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.core.config import settings
-from app.api import auth, emojis
+from app.api import admin, auth, emojis
 
 app = FastAPI(
     title="3TOP Emoji Studio API",
@@ -24,6 +24,7 @@ app.add_middleware(
 
 app.include_router(auth.router, prefix=settings.API_PREFIX)
 app.include_router(emojis.router, prefix=settings.API_PREFIX)
+app.include_router(admin.router, prefix=settings.API_PREFIX)
 
 if settings.MOCK_MODE:
     from app.api import mock

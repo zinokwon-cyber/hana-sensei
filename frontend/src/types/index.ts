@@ -2,7 +2,73 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  is_admin: boolean;
   created_at: string;
+}
+
+export interface AdminDashboard {
+  total_users: number;
+  total_emojis: number;
+  today_emojis: number;
+  this_week_emojis: number;
+}
+
+export interface DailyReportItem {
+  date: string;
+  count: number;
+}
+
+export interface WeekdayReportItem {
+  weekday: number;
+  weekday_label: string;
+  count: number;
+}
+
+export interface HourlyReportItem {
+  hour: number;
+  count: number;
+}
+
+export interface StyleReportItem {
+  style: string;
+  count: number;
+  percentage: number;
+}
+
+export interface AdminUserItem {
+  id: string;
+  email: string;
+  name: string;
+  is_admin: boolean;
+  created_at: string;
+  emoji_count: number;
+}
+
+export interface AdminUserListResponse {
+  items: AdminUserItem[];
+  total: number;
+  page: number;
+  size: number;
+  pages: number;
+}
+
+export interface AdminEmojiItem {
+  id: string;
+  user_id: string;
+  user_name: string;
+  user_email: string;
+  title: string;
+  style: string;
+  image_url: string;
+  created_at: string;
+}
+
+export interface AdminEmojiListResponse {
+  items: AdminEmojiItem[];
+  total: number;
+  page: number;
+  size: number;
+  pages: number;
 }
 
 export interface Emoji {
