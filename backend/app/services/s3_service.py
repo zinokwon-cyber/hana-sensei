@@ -37,7 +37,8 @@ def get_public_url(s3_key: str) -> str:
     if settings.S3_BASE_URL:
         return f"{settings.S3_BASE_URL.rstrip('/')}/{s3_key}"
     if settings.STORAGE_PROVIDER == "minio":
-        return f"http://localhost:9000/{settings.S3_BUCKET_NAME}/{s3_key}"
+        # Route through nginx proxy (/storage/) so browser doesn't need direct MinIO port access
+        return f"http://localhost/storage/{settings.S3_BUCKET_NAME}/{s3_key}"
     return f"https://{settings.S3_BUCKET_NAME}.s3.{settings.AWS_REGION}.amazonaws.com/{s3_key}"
 
 
@@ -67,6 +68,9 @@ async def delete_emoji_image(image_url: str) -> None:
     try:
         if settings.S3_BASE_URL:
             s3_key = image_url.replace(settings.S3_BASE_URL.rstrip("/") + "/", "")
+        elif settings.STORAGE_PROVIDER == "minio":
+            base = f"http://localhost/storage/{settings.S3_BUCKET_NAME}/"
+            s3_key = image_url.replace(base, "")
         else:
             base = f"https://{settings.S3_BUCKET_NAME}.s3.{settings.AWS_REGION}.amazonaws.com/"
             s3_key = image_url.replace(base, "")
