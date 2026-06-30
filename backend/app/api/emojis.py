@@ -1,8 +1,11 @@
 import uuid
 import math
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, delete
+
+logger = logging.getLogger(__name__)
 
 from app.core.database import get_db
 from app.core.security import get_current_user_id
@@ -20,16 +23,27 @@ async def generate_emoji(
     user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
-    """Generate a new emoji using OpenAI and store in S3."""
+    """Generate a new emoji using AI and store in MinIO/S3."""
     emoji_id = str(uuid.uuid4())
 
-    # Generate image with OpenAI
-    image_bytes, prompt = await generate_emoji_image(request.title, request.style)
+    try:
+        image_bytes, prompt = await generate_emoji_image(request.title, request.style)
+    except Exception as e:
+        logger.error("Image generation failed: %s", e, exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="이미지 생성에 실패했습니다. 잠시 후 다시 시도해주세요.",
+        )
 
-    # Upload to S3
-    image_url = await upload_emoji_image(image_bytes, user_id, emoji_id)
+    try:
+        image_url = await upload_emoji_image(image_bytes, user_id, emoji_id)
+    except Exception as e:
+        logger.error("Image upload failed: %s", e, exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="이미지 저장에 실패했습니다. 스토리지 설정을 확인해주세요.",
+        )
 
-    # Save to database
     emoji = Emoji(
         id=uuid.UUID(emoji_id),
         user_id=uuid.UUID(user_id),
