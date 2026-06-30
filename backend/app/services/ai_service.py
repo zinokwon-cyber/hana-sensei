@@ -23,6 +23,13 @@ STYLE_MODIFIERS = {
 }
 
 STATUS_CONTEXT = {
+    "회의 중": "sitting in a meeting, holding papers or tablet",
+    "출장 중": "carrying a travel bag or suitcase, on the move",
+    "프로젝트 중": "working on a laptop, surrounded by project notes",
+    "외근 중": "outside the office, business casual outdoor setting",
+    "휴가 중": "relaxing, vacation mode, sunglasses or beach hat",
+    "고객미팅 중": "handshake pose or greeting gesture, professional meeting",
+    "제안서작성 중": "writing or typing intensely, focused on a document",
     "회의중": "sitting in a meeting, holding papers or tablet",
     "출장중": "carrying a travel bag or suitcase, on the move",
     "프로젝트중": "working on a laptop, surrounded by project notes",

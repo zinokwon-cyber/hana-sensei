@@ -36,7 +36,7 @@ export function GenerateForm({ onGenerate, generating }: GenerateFormProps) {
           id="title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="예: 회의중, 출장중, 휴가중..."
+          placeholder="예: 회의 중, 출장 중, 휴가 중..."
           className="h-11 text-base"
           maxLength={50}
           disabled={generating}

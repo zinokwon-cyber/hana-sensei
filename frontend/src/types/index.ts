@@ -110,11 +110,11 @@ export const EMOJI_STYLES: { value: EmojiStyle; label: string; description: stri
 ];
 
 export const STATUS_PRESETS = [
-  "회의중",
-  "출장중",
-  "프로젝트중",
-  "외근중",
-  "휴가중",
-  "고객미팅중",
-  "제안서작성중",
+  "회의 중",
+  "출장 중",
+  "프로젝트 중",
+  "외근 중",
+  "휴가 중",
+  "고객미팅 중",
+  "제안서작성 중",
 ];
